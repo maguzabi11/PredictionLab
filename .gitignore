@@ -1,0 +1,43 @@
+# Unreal generated files
+.vs/
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# Build artifacts
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+
+# User-specific Unreal files
+*.user
+*.sln.DotSettings.user
+
+# Logs and crash dumps
+*.log
+*.dmp
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# PredictionLab specific files
+.idea/
+.codex/
+.omo/
+.sisyphus/
+.zed/
+Docs/작업노트/
+/Content/*
+!/Content/Maps/
+/Content/Maps/*
+!/Content/Maps/Map1.umap
+
+compile_commands.json
+
+# Local MCP client config (workspace-specific, do not commit)
+.mcp.json
