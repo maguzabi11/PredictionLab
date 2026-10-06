@@ -41,3 +41,7 @@ compile_commands.json
 
 # Local MCP client config (workspace-specific, do not commit)
 .mcp.json
+
+# Local working documents are excluded from distribution
+/[Dd][Oo][Cc][Ss]/
+/AGENTS.md
