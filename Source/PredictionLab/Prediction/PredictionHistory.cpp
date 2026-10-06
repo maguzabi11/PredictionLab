@@ -12,6 +12,20 @@ void FPredictionHistory::Add(const FPredictedInputCmd& Cmd, const FPredictedStat
 	}
 }
 
+bool FPredictionHistory::UpdatePredictedStateAt(uint32 InputSequence, const FPredictedState& StateAfter)
+{
+	for (FEntry& Entry : Entries)
+	{
+		if (Entry.Cmd.Sequence == InputSequence)
+		{
+			Entry.StateAfter = StateAfter;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void FPredictionHistory::RemoveProcessed(uint32 LastProcessedInput)
 {
 	Entries.RemoveAllSwap(

@@ -9,6 +9,8 @@ class FPredictionHistory
 public:
 	// 입력 커맨드와, 그 커맨드를 적용한 직후 클라이언트가 예측한 상태를 함께 저장한다.
 	void Add(const FPredictedInputCmd& Cmd, const FPredictedState& StateAfter);
+	// Replay 결과로 기존 sequence의 전체 예측 상태를 갱신한다. 기록이 없으면 false.
+	bool UpdatePredictedStateAt(uint32 InputSequence, const FPredictedState& StateAfter);
 	void RemoveProcessed(uint32 LastProcessedInput);
 	void Reset();
 

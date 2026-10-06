@@ -40,23 +40,22 @@ This avoids comparing the server ack state against the client's latest predicted
    - Copy the authoritative `State` into `LocalPredictedState`.
    - Fetch pending commands with `Sequence > State.LastProcessedInput`.
    - Replay pending commands through `FPredictionSimulation::Simulate`.
+   - After each replayed command, update its existing history entry through `UpdatePredictedStateAt` with the full resulting state. Subsequent ACKs compare against these corrected predictions.
    - Apply the replayed state to the actor.
-   - Log `ack`, `beforeError`, `replayed`, and `correction`.
+   - Log `ack`, `beforeError`, `replayed`, `correction`, and `pending`.
+
+All three ACK paths (soft accept, reconcile, and no-history) log at `Log` level and include the pending history count after acknowledged inputs are removed. See `Phase7_NetworkProfiles.md` for metric denominators, sample populations, and missing-data handling.
 
 ## Current Limitations
 
 - The history cap is still `MaxSavedCommands = 256`; if an ack arrives after its saved prediction has been evicted, correction is skipped for that ack.
 - Inputs are not bundled or resent. Packet loss can still drop individual input commands.
 - The reconciliation threshold is a compile-time constant in `PredictionLabPawn.cpp`, not a config value.
-- There is no CSV/stat aggregation yet. Current evidence is log based.
+- `Tools/AnalyzeNetworkRuns.ps1` generates CSV/JSON ACK statistics for completed runs. The four-profile matrix completed three runs per profile on 2026-10-01; see `TestRuns.md`. Completion validates log coverage, not delivery of every unreliable input/ACK or interpolation quality.
 - Remote interpolation is implemented separately with a 2-point snapshot buffer; it does not use this rewind/replay path.
 
-## Next Step
+## Version Scope (2026-10-06)
 
-Phase 7 should turn the current logs into repeatable network fault measurements:
+This portfolio version closes at Phase 7 test execution and data analysis. Normal, HighLatency, Jitter, and PacketLoss completed three runs each, and the run/profile summaries and observed metrics are recorded in `Docs/TestRuns.md`.
 
-1. Extend `Tools/RunNetworkProfile.bat` beyond its current placeholder behavior.
-2. Run Normal, HighLatency, Jitter, PacketLoss, and BadClient profiles.
-3. Capture reconciliation log metrics: `beforeError`, `replayed`, `correction`, and frequency.
-4. Compare remote proxy interpolation under jitter/loss against raw snapshot snapping.
-5. Record the runs in `Docs/TestRuns.md`.
+Further interpretation of rare events and sample populations, raw-snapshot/interpolation comparison, and a BadClient gameplay hook are optional follow-up work. They are excluded from this version's completion criteria. Interpolation is implemented, but its improvement over raw snapshot snapping has not been separately measured.

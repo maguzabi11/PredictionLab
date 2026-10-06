@@ -11,8 +11,8 @@ rem profiles replay the same 60 second, 60 Hz client input sequence three times.
 set "RUN_COUNT=3"
 set "AUTO_INPUT_DURATION_SECONDS=60"
 set "SERVER_STARTUP_SECONDS=4"
-set "CLIENT_JOIN_GRACE_SECONDS=3"
-set /a RUN_ACTIVE_SECONDS=%AUTO_INPUT_DURATION_SECONDS% + %CLIENT_JOIN_GRACE_SECONDS%
+set "AUTO_INPUT_WAIT_TIMEOUT_SECONDS=120"
+set "AUTO_INPUT_DRAIN_SECONDS=3"
 set "INTER_RUN_SETTLE_SECONDS=3"
 set "AUTO_INPUT_ARGS=-PredictionLabAutoInput=1"
 set "BATCH_EXIT_CODE=0"
@@ -79,7 +79,7 @@ set "PREDICTIONLAB_CLIENT_COMMON_ARGS=%CLIENT_COMMON_ARGS%"
 echo Profile: %PROFILE_NAME%
 echo Runs: %RUN_COUNT%
 echo AutoInput: %AUTO_INPUT_ARGS% ^(%AUTO_INPUT_DURATION_SECONDS%s at 60 Hz^)
-echo Run active window: %RUN_ACTIVE_SECONDS%s ^(%CLIENT_JOIN_GRACE_SECONDS%s client join grace included^)
+echo Client completion timeout: %AUTO_INPUT_WAIT_TIMEOUT_SECONDS%s after launch
 echo PacketArgs: %PACKET_ARGS%
 echo ExtraArgs: %EXTRA_ARGS%
 echo(
@@ -116,8 +116,10 @@ for /L %%R in (1,1,%RUN_COUNT%) do (
 
             if defined CLIENT1_PID if defined CLIENT2_PID (
                 echo          Server PID !SERVER_PID!, clients !CLIENT1_PID! / !CLIENT2_PID!.
-                echo          Waiting %RUN_ACTIVE_SECONDS%s for the 60 second automatic input run...
-                timeout /t %RUN_ACTIVE_SECONDS% /nobreak >nul
+                echo          Waiting for both clients to complete 3,600 commands...
+                powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0WaitForAutoInput.ps1" -Client1Log "!CLIENT1_LOG!" -Client2Log "!CLIENT2_LOG!" -Client1Pid !CLIENT1_PID! -Client2Pid !CLIENT2_PID! -TimeoutSeconds %AUTO_INPUT_WAIT_TIMEOUT_SECONDS%
+                if errorlevel 1 set "BATCH_EXIT_CODE=1"
+                if not errorlevel 1 timeout /t %AUTO_INPUT_DRAIN_SECONDS% /nobreak >nul
             ) else (
                 echo          One or more client launches failed; stopping this run.
             )
@@ -171,8 +173,8 @@ exit /b %ALL_EXIT_CODE%
     echo AutoInputSampleRateHz=60
     echo AutoInputCommandCount=3600
     echo ServerStartupSeconds=%SERVER_STARTUP_SECONDS%
-    echo ClientJoinGraceSeconds=%CLIENT_JOIN_GRACE_SECONDS%
-    echo RunActiveSeconds=%RUN_ACTIVE_SECONDS%
+    echo AutoInputWaitTimeoutSeconds=%AUTO_INPUT_WAIT_TIMEOUT_SECONDS%
+    echo AutoInputDrainSeconds=%AUTO_INPUT_DRAIN_SECONDS%
     echo InterRunSettleSeconds=%INTER_RUN_SETTLE_SECONDS%
     echo Notes=%PROFILE_NOTES%
     echo ServerLog=%SERVER_LOG%
@@ -220,7 +222,7 @@ echo   Tools\RunNetworkProfile.bat [Normal^|HighLatency^|Jitter^|PacketLoss^|Bad
 echo(
 echo Each selected profile runs three sequential dedicated-server + two-client tests.
 echo Both clients receive -PredictionLabAutoInput=1 and replay 3,600 commands over 60 seconds.
-echo The script waits an additional 3 seconds for client join, then terminates only the PIDs it launched.
+echo The script waits for both completion logs, up to 120 seconds, then stops only the PIDs it launched.
 echo.
 echo Examples:
 echo   Tools\RunNetworkProfile.bat Normal

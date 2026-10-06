@@ -298,7 +298,7 @@ void APredictionLabPawn::ClientReceiveAuthoritativeState_Implementation(const FP
 	{
 		// ack에 대응하는 예측 기록이 없으면(초기 상태 또는 stale/중복 패킷) 보정 여부를
 		// 판단할 수 없으므로 건너뛴다. 이후 더 최신 ack가 도착하면 보정된다.
-		UE_LOG(LogPredictionLab, Verbose, TEXT("Client ack(no-history) pawn=%s ack=%u pending=%d"),
+		UE_LOG(LogPredictionLab, Log, TEXT("Client ack(no-history) pawn=%s ack=%u pending=%d"),
 			*GetName(),
 			State.LastProcessedInput,
 			InputHistory.Num());
@@ -318,17 +318,20 @@ void APredictionLabPawn::ClientReceiveAuthoritativeState_Implementation(const FP
 		for (const FPredictedInputCmd& PendingCmd : PendingInputs)
 		{
 			FPredictionSimulation::Simulate(LocalPredictedState, PendingCmd, SimulationSettings);
+			// 다음 ACK도 보정된 예측 상태와 비교할 수 있도록 각 replay 결과를 저장한다.
+			InputHistory.UpdatePredictedStateAt(PendingCmd.Sequence, LocalPredictedState);
 		}
 		ApplyStateToActor(LocalPredictedState);
 
 		// 보정으로 인해 화면상 현재 위치가 실제로 얼마나 튀었는지(snap 크기)를 기록한다.
 		const float AppliedCorrection = FVector::Dist(LocationBeforeReplay, FVector(LocalPredictedState.Location));
-		UE_LOG(LogPredictionLab, Log, TEXT("Client reconcile pawn=%s ack=%u beforeError=%.2f replayed=%d correction=%.2f"),
+		UE_LOG(LogPredictionLab, Log, TEXT("Client reconcile pawn=%s ack=%u beforeError=%.2f replayed=%d correction=%.2f pending=%d"),
 			*GetName(),
 			State.LastProcessedInput,
 			ErrorDistance,
 			PendingInputs.Num(),
-			AppliedCorrection);
+			AppliedCorrection,
+			InputHistory.Num());
 	}
 	else
 	{
